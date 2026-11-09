@@ -1,0 +1,15 @@
+rmi_educacao:
+  target: dev
+  outputs:
+    dev:
+      dataset: "{{ env_var('DBT_DATASET', 'dbt_dev') }}"
+      project: "{{ env_var('GCP_PROJECT_ID') }}"
+      job_execution_timeout_seconds: 300
+      job_retries: 1
+      location: US
+      method: oauth
+      priority: interactive
+      threads: 4
+      type: bigquery
+      maximum_bytes_billed: 10000000000
+  target: dev
