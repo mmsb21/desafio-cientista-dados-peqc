@@ -103,6 +103,7 @@ google-cloud-aiplatform==1.148.1
 google-cloud-bigquery==3.47.0
     # via
     #   dbt-bigquery
+    #   desafio-cientista-dados-peqc
     #   google-cloud-aiplatform
     #   pandas-gbq
 google-cloud-core==2.8.0
