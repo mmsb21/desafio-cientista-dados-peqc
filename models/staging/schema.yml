@@ -2,98 +2,274 @@ version: 2
 
 sources:
   - name: educacao
-    description: ""
+    description: >
+      Extrato anonimizado e aleatorizado do RMI com dados da rede municipal de educação
+      (ano letivo de 2025, com as datas deslocadas para o ano 2000). 
+      Tipos e granularidades abaixo foram conferidos nos dados
+      e corrigem o schema fornecido com o desafio onde ele diverge.
     schema: rmi_raw
+    config:
+      tags: ["fonte", "educacao"]
+      meta:
+        origem: "RMI / SME (extrato anonimizado do desafio)"
+        sensibilidade: "dados de estudantes anonimizados (LGPD)"
+      freshness:
+        warn_after: {count: 365, period: day}
+        error_after: {count: 400, period: day}   
     tables:
       - name: aluno
-        description: ""
+        description: >
+          Cadastro de alunos. Granularidade: 1 linha por aluno.
+          Coerente com `turma` e `avaliacao`; não se liga à `frequencia` pelo id do aluno.
         columns:
           - name: id_aluno
             data_type: bytes
-            description: ""
+            description: "Hash de 17 bytes do aluno. Chega como BYTES (o schema fornecido diz STRING). Staging converte para texto."
+            data_tests:
+              - unique:
+                  description: "Chave do cadastro: duplicidade inflaria qualquer contagem de alunos."
+              - not_null:
+                  description: "Aluno sem id não se liga a turma nem a avaliação."
           - name: id_turma
             data_type: int64
-            description: ""
+            description: "Hash da turma do aluno (1 turma por aluno)."
           - name: faixa_etaria
             data_type: string
-            description: ""
+            description: "Faixa etária derivada da idade atual, não da idade durante o ano letivo."
+            data_tests:
+              - accepted_values:
+                  description: "Só as 5 faixas documentadas."
+                  arguments:
+                    values: ["0-5", "6-10", "11-14", "15-17", "18+"]
           - name: bairro
             data_type: int64
-            description: ""
+            description: >
+              Hash do bairro de residência (tem nulos). Não é comparável com o hash
+              de bairro da escola: os dois não têm nenhum valor em comum.
 
       - name: avaliacao
-        description: ""
+        description: >
+          Avaliação por aluno × turma × bimestre em formato largo: uma coluna de nota por
+          disciplina (com ruído de ±0,2) e a frequência do bimestre calculada pelo sistema
+          de origem. Notas por disciplina só existem a partir dos anos finais do fundamental;
+          Inglês (`disciplina_3`) vem 100% nulo.
+        data_tests:
+          - dbt_utils.unique_combination_of_columns:
+              name: src_avaliacao__grao_sem_duplicatas
+              description: >
+                Monitora duplicação na origem: a extração do desafio tem algumas chaves
+                repetidas, que a staging deduplica. O teste avisa sempre e só falha se o
+                problema crescer além do limite.
+              arguments:
+                combination_of_columns: [id_aluno, id_turma, bimestre]
+              config:
+                warn_if: ">0"
+                error_if: ">500"
         columns:
           - name: id_aluno
             data_type: bytes
-            description: ""
+            description: "Hash de 17 bytes do aluno (BYTES); coerente com `aluno` e `turma`."
+            data_tests:
+              - not_null
           - name: id_turma
             data_type: int64
-            description: ""
+            description: "Hash com sal do id da turma."
+            data_tests:
+              - not_null
           - name: frequencia
             data_type: float64
-            description: ""
+            description: >
+              Frequência do aluno no bimestre (não acumulada), em percentual de 0 a 100,
+              calculada pelo sistema de origem. Tem nulos.
+            data_tests:
+              - dbt_expectations.expect_column_values_to_be_between:
+                  name: src_avaliacao__frequencia_percentual
+                  description: "Percentual válido; é a referência para conferir a frequência reconstruída a partir da tabela `frequencia`."
+                  arguments:
+                    min_value: 0
+                    max_value: 100
           - name: bimestre
             data_type: string
-            description: ""
+            description: "Bimestre do ano letivo (1 a 4). Chega como texto (o schema fornecido diz INT64); a staging converte para inteiro."
+            data_tests:
+              - not_null
+              - dbt_expectations.expect_column_values_to_be_of_type:
+                  name: src_avaliacao__bimestre_e_texto
+                  description: "Trava o tipo real na origem: se passar a vir como inteiro, a conversão da staging deve ser revista."
+                  arguments:
+                    column_type: string
+              - accepted_values:
+                  description: "Só os 4 bimestres do ano letivo; outro valor indicaria erro de carga ou mudança na origem."
+                  arguments:
+                    values: ["1", "2", "3", "4"]
           - name: disciplina_1
             data_type: float64
-            description: ""
+            description: "Nota de Língua Portuguesa (0 a 10, com ruído de ±0,2)."
+            data_tests:
+              - dbt_expectations.expect_column_values_to_be_between:
+                  name: src_avaliacao__nota_portugues_0_10
+                  description: "Nota fora da escala indicaria erro na origem ou no ruído de anonimização."
+                  arguments:
+                    min_value: 0
+                    max_value: 10
           - name: disciplina_2
             data_type: float64
-            description: ""
+            description: "Nota de Ciências (0 a 10, com ruído de ±0,2)."
+            data_tests:
+              - dbt_expectations.expect_column_values_to_be_between:
+                  name: src_avaliacao__nota_ciencias_0_10
+                  description: "Nota fora da escala indicaria erro na origem ou no ruído de anonimização."
+                  arguments:
+                    min_value: 0
+                    max_value: 10
           - name: disciplina_3
             data_type: float64
-            description: ""
+            description: "Nota de Inglês: 100% nula nesta extração; fica fora das análises de nota."
           - name: disciplina_4
             data_type: float64
-            description: ""
+            description: "Nota de Matemática (0 a 10, com ruído de ±0,2)."
+            data_tests:
+              - dbt_expectations.expect_column_values_to_be_between:
+                  name: src_avaliacao__nota_matematica_0_10
+                  description: "Nota fora da escala indicaria erro na origem ou no ruído de anonimização."
+                  arguments:
+                    min_value: 0
+                    max_value: 10
 
       - name: escola
-        description: ""
+        description: >
+          Cadastro de unidades escolares. Granularidade: 1 linha por escola. Traz só id e
+          hash do bairro: não há tipo nem região, ao contrário do enunciado. Nem todas as
+          escolas aparecem na frequência.
         columns:
           - name: id_escola
             data_type: int64
-            description: ""
+            description: "Hash com sal do id da escola."
+            data_tests:
+              - unique:
+                  description: "Chave do cadastro de escolas, usada pela frequência."
+              - not_null
           - name: bairro
             data_type: int64
-            description: ""
+            description: "Hash do bairro da escola. É o único recorte territorial disponível."
+            data_tests:
+              - not_null:
+                  description: "Sem bairro, a escola some do recorte territorial do mart."
 
       - name: frequencia
-        description: ""
+        description: >
+          Frequência por aluno × turma × disciplina × período, e não por aluno/dia como diz
+          o enunciado. O período é em geral mensal, cortado no fim de cada bimestre (09/05 e
+          17/07). A coluna `frequencia` foi gravada como 100 − faltas/dias_letivos, sem o ×100.
+          Os ids de aluno existem no cadastro, mas não identificam o mesmo aluno: entre
+          tabelas, só turma e escola são chaves confiáveis.
+        data_tests:
+          - dbt_utils.unique_combination_of_columns:
+              name: src_frequencia__grao_sem_duplicatas
+              description: >
+                Monitora duplicação na origem: a extração do desafio tem duplicatas exatas e
+                chaves com valores conflitantes, que a staging trata. O teste avisa sempre e
+                só falha se o problema crescer além do limite.
+              arguments:
+                combination_of_columns: [id_aluno, id_turma, disciplina, data_inicio]
+              config:
+                warn_if: ">0"
+                error_if: ">5000"
+          - dbt_utils.expression_is_true:
+              name: src_frequencia__formula_sem_x100
+              description: >
+                Guarda da premissa de reconstrução: `frequencia` precisa existir e ficar entre
+                90 e 100. Se surgir valor abaixo de 90, a origem passou a gravar o percentual
+                correto e o cálculo das faltas precisa mudar. A coluna aparece como
+                `frequencia.frequencia` porque tem o mesmo nome da tabela: sem o prefixo,
+                o BigQuery entende `frequencia` como a linha inteira.
+              arguments:
+                expression: "frequencia.frequencia is not null and frequencia.frequencia between 90 and 100"
         columns:
           - name: id_escola
             data_type: int64
-            description: ""
+            description: "Hash com sal do id da escola. Cada turma pertence a uma única escola."
+            data_tests:
+              - not_null
+              - relationships:
+                  description: "Toda frequência precisa de uma escola cadastrada para entrar no mart por escola."
+                  arguments:
+                    to: source('educacao', 'escola')
+                    field: id_escola
           - name: id_aluno
             data_type: bytes
-            description: ""
+            description: "Hash de 17 bytes (BYTES). Use só dentro desta tabela: não identifica o mesmo aluno do cadastro."
+            data_tests:
+              - not_null
+              - dbt_expectations.expect_column_values_to_be_of_type:
+                  name: src_frequencia__id_aluno_e_bytes
+                  description: "Trava o tipo real (o schema fornecido diz STRING); a staging converte com to_hex."
+                  arguments:
+                    column_type: bytes
           - name: id_turma
             data_type: int64
-            description: ""
+            description: "Hash com sal do id da turma."
+            data_tests:
+              - not_null
           - name: data_inicio
             data_type: string
-            description: ""
+            description: "Início do período de apuração (texto AAAA-MM-DD, ano deslocado para 2000)."
+            data_tests:
+              - not_null
           - name: data_fim
             data_type: string
-            description: ""
+            description: "Fim do período de apuração (texto AAAA-MM-DD, ano deslocado para 2000)."
+            data_tests:
+              - not_null
           - name: disciplina
             data_type: string
-            description: ""
+            description: "disciplina_1 = Português, disciplina_2 = Ciências, disciplina_3 = Inglês, disciplina_4 = Matemática."
+            data_tests:
+              - accepted_values:
+                  description: "A reconstrução das faltas soma exatamente estas 4 disciplinas."
+                  arguments:
+                    values: ["disciplina_1", "disciplina_2", "disciplina_3", "disciplina_4"]
           - name: frequencia
             data_type: float64
-            description: ""
+            description: >
+              100 − faltas_disciplina/dias_letivos (fórmula da origem, sem o ×100).
+              Por isso todos os valores ficam perto de 100.
 
       - name: turma
-        description: ""
+        description: >
+          Relação aluno–turma, não um cadastro de turmas: não traz série, turno nem escola.
+          Granularidade: 1 linha por aluno (cada aluno em uma turma).
         columns:
           - name: ano
             data_type: int64
-            description: ""
+            description: "Ano letivo anonimizado: sempre 2000 (o ano real é 2025)."
+            data_tests:
+              - accepted_values:
+                  description: "O deslocamento das datas assume um único ano letivo; outro ano exigiria rever as datas."
+                  arguments:
+                    values: [2000]
+                    quote: false
           - name: id_turma
             data_type: int64
-            description: ""
+            description: "Hash com sal do id da turma; consistente com `frequencia` e `avaliacao`."
+            data_tests:
+              - not_null
           - name: id_aluno
             data_type: bytes
-            description: ""
+            description: "Hash de 17 bytes do aluno (BYTES)."
+            data_tests:
+              - unique:
+                  description: "Garante a granularidade de 1 linha por aluno."
+              - not_null
 
+  - name: dados_mestres
+    description: >
+      Tabela pública de bairros, indicada no enunciado como auxiliar. 
+      Declarada para documentação: nos Parquets o bairro vem como
+      hash (INT64) e não há chave para juntar com esta tabela sem desfazer a anonimização,
+      o que o enunciado proíbe.
+    database: datario
+    schema: dados_mestres
+    tables:
+      - name: bairro
+        description: "Cadastro oficial de bairros do Rio de Janeiro."
