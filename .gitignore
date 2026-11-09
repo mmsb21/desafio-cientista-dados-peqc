@@ -1,0 +1,18 @@
+# Python / uv
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# dbt
+target/
+dbt_packages/
+logs/
+.user.yml
+
+# dados do desafio
+
+data/*
+!data/.gitkeep
+
+# variáveis
+.env

@@ -1,0 +1,9 @@
+[project]
+name = "desafio-cientista-dados-peqc"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "dbt-bigquery~=1.12.0",
+    "dbt-core~=1.12.0",
+    "google-cloud-bigquery>=3.47.0",
+]
