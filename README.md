@@ -45,6 +45,21 @@ Os modelos são criados nos datasets `dbt_dev_staging`, `dbt_dev_intermediate` e
   incremental depende de MERGE.
 - **Localização US:** a mesma da tabela pública `datario.dados_mestres.bairro`.
 
+### Convenções de staging
+
+- **Nomes:** modelos `stg_<source>__<tabela>` (ex.: `stg_educacao__aluno`); colunas em
+  snake_case, com prefixo `id_` para identificadores.
+- **Identificadores como texto:** todos os ids são STRING, em todas as camadas. Na origem
+  eles chegam com tipos diferentes (BYTES no id do aluno, INT64 nos demais) e não são
+  números: padronizar evita junções entre tipos diferentes. O id do aluno é convertido
+  com `to_hex` (17 bytes → 34 caracteres).
+- **Tipos corrigidos só onde a origem errou:** datas gravadas como texto viram DATE e o
+  bimestre, gravado como texto, vira INT64. Colunas que já chegam com o tipo certo
+  (faixa etária, frequência, notas) não são convertidas.
+- **Nulos:** mantidos quando são reais (ex.: bairro de residência ausente); o staging
+  não inventa valores.
+- **Filtros:** só onde os dados exigem (deduplicação da frequência e da avaliação),
+  explicados no próprio modelo.
 ## Status
 
 - [x] Tarefa 1: configuração, sources e estrutura

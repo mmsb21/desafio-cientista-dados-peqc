@@ -273,3 +273,185 @@ sources:
     tables:
       - name: bairro
         description: "Cadastro oficial de bairros do Rio de Janeiro."
+
+models:
+  - name: stg_educacao__aluno
+    description: >
+      Cadastro de alunos com ids padronizados como texto. Granularidade: 1 linha por aluno.
+      Liga-se a turma e avaliação pelo id do aluno; com a frequência, só pela turma,
+      porque os ids de aluno da frequência não identificam o mesmo aluno.
+    columns:
+      - name: id_aluno
+        data_type: string
+        description: "Hash do aluno em texto hexadecimal (34 caracteres), convertido de BYTES com to_hex. Chave do modelo."
+        data_tests:
+          - unique:
+              description: "Chave do modelo: os modelos seguintes dependem de exatamente 1 linha por aluno."
+          - not_null
+      - name: id_turma
+        data_type: string
+        description: "Hash da turma do aluno, em texto."
+      - name: faixa_etaria
+        data_type: string
+        description: "Faixa etária derivada da idade atual (na extração), não da idade durante o ano letivo."
+      - name: id_bairro_residencia
+        data_type: string
+        description: "Hash do bairro de residência, em texto (tem nulos). Não é comparável com o bairro da escola."
+
+  - name: stg_educacao__aluno_turma
+    description: >
+      Vínculo aluno–turma (tabela `turma` da origem), com ids em texto. Granularidade:
+      1 linha por aluno. A turma de cada aluno é a mesma do cadastro de alunos.
+    columns:
+      - name: id_aluno
+        data_type: string
+        description: "Hash do aluno em texto hexadecimal; mesmo id de `stg_educacao__aluno`. Chave do modelo."
+        data_tests:
+          - unique:
+              description: "Cada aluno está em uma única turma."
+          - not_null
+          - relationships:
+              description: "Todo vínculo precisa de um aluno cadastrado."
+              arguments:
+                to: ref('stg_educacao__aluno')
+                field: id_aluno
+      - name: id_turma
+        data_type: string
+        description: "Hash da turma, em texto."
+        data_tests:
+          - not_null
+      - name: ano_letivo
+        data_type: int64
+        description: "Ano letivo anonimizado: sempre 2000 (o ano real é 2025)."
+
+  - name: stg_educacao__avaliacao
+    description: >
+      Avaliação por aluno × turma × bimestre, com uma coluna de nota por disciplina (notas só
+      a partir dos anos finais do fundamental). Deduplicada: quando a origem repete a chave,
+      fica a linha com frequência preenchida e, entre elas, a de menor frequência; empate,
+      a de menores notas. Sem Inglês, que vem 100% nulo na origem.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          name: stg_avaliacao__grao_unico
+          description: "Depois da deduplicação, a chave aluno × turma × bimestre não pode se repetir."
+          arguments:
+            combination_of_columns: [id_aluno, id_turma, bimestre]
+    columns:
+      - name: id_aluno
+        data_type: string
+        description: "Hash do aluno em texto hexadecimal; mesmo id de `stg_educacao__aluno`."
+        data_tests:
+          - not_null
+          - relationships:
+              description: "Toda avaliação precisa de um aluno cadastrado."
+              arguments:
+                to: ref('stg_educacao__aluno')
+                field: id_aluno
+      - name: id_turma
+        data_type: string
+        description: "Hash da turma em que o aluno foi avaliado, em texto. Pode não ser a turma atual do aluno."
+        data_tests:
+          - not_null
+      - name: bimestre
+        data_type: int64
+        description: "Bimestre do ano letivo (1 a 4), convertido de texto para inteiro."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
+                quote: false
+      - name: frequencia_bimestre
+        data_type: float64
+        description: "Frequência do aluno no bimestre, em percentual de 0 a 100, calculada pela origem. Tem nulos."
+      - name: nota_portugues
+        data_type: float64
+        description: "Nota de Língua Portuguesa (0 a 10, com ruído de ±0,2)."
+      - name: nota_ciencias
+        data_type: float64
+        description: "Nota de Ciências (0 a 10, com ruído de ±0,2)."
+      - name: nota_matematica
+        data_type: float64
+        description: "Nota de Matemática (0 a 10, com ruído de ±0,2)."
+
+  - name: stg_educacao__escola
+    description: >
+      Cadastro de escolas com ids em texto. Granularidade: 1 linha por escola.
+      Traz só o id e o hash do bairro da escola.
+    columns:
+      - name: id_escola
+        data_type: string
+        description: "Hash da escola, em texto. Chave do modelo."
+        data_tests:
+          - unique:
+              description: "A frequência e o mart por escola dependem de 1 linha por escola."
+          - not_null
+      - name: id_bairro_escola
+        data_type: string
+        description: "Hash do bairro da escola, em texto. Único recorte territorial disponível; não é comparável com o bairro de residência do aluno."
+        data_tests:
+          - not_null
+
+  - name: stg_educacao__frequencia
+    description: >
+      Frequência por aluno × turma × disciplina × período (em geral mensal), com ids em
+      texto, datas como DATE e disciplina pelo nome. Deduplicada: quando a origem repete a
+      chave, fica a linha de menor frequência (mais faltas). As faltas ainda não estão
+      reconstruídas: isso acontece na camada intermediate, com o calendário letivo.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          name: stg_frequencia__grao_unico
+          description: "Depois da deduplicação, a chave aluno × turma × disciplina × início do período não pode se repetir."
+          arguments:
+            combination_of_columns: [id_aluno_frequencia, id_turma, disciplina, data_inicio]
+      - dbt_utils.expression_is_true:
+          name: stg_frequencia__periodo_valido
+          description: "O período de apuração não pode terminar antes de começar."
+          arguments:
+            expression: "data_fim >= data_inicio"
+    columns:
+      - name: id_escola
+        data_type: string
+        description: "Hash da escola, em texto."
+        data_tests:
+          - not_null
+          - relationships:
+              description: "Toda frequência precisa de uma escola cadastrada para entrar no mart por escola."
+              arguments:
+                to: ref('stg_educacao__escola')
+                field: id_escola
+      - name: id_aluno_frequencia
+        data_type: string
+        description: "Hash do aluno em texto hexadecimal. Não identifica o mesmo aluno do cadastro: use só dentro desta tabela."
+        data_tests:
+          - not_null
+      - name: id_turma
+        data_type: string
+        description: "Hash da turma, em texto. Parte das turmas não aparece no vínculo aluno–turma; isso é tratado na intermediate."
+        data_tests:
+          - not_null
+      - name: disciplina
+        data_type: string
+        description: "Nome da disciplina: portugues, ciencias, ingles ou matematica."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["portugues", "ciencias", "ingles", "matematica"]
+      - name: data_inicio
+        data_type: date
+        description: "Início do período de apuração (ano deslocado para 2000)."
+        data_tests:
+          - not_null
+      - name: data_fim
+        data_type: date
+        description: "Fim do período de apuração (ano deslocado para 2000)."
+        data_tests:
+          - not_null
+      - name: frequencia_bruta
+        data_type: float64
+        description: >
+          Valor da origem, gravado como 100 − faltas/dias_letivos (sem o ×100). Não é
+          percentual: as faltas são reconstruídas na intermediate.
+        data_tests:
+          - not_null
