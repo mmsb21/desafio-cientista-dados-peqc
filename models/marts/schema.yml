@@ -1,0 +1,182 @@
+version: 2
+
+models:
+  - name: mart_educacao__absenteismo_escola
+    description: >
+      Absenteísmo crônico por escola: quantos alunos ficaram abaixo de 75% de frequência, o
+      mínimo da LDB. 1 linha por escola com dados de frequência. A unidade é o aluno na escola:
+      as turmas do mesmo aluno dentro da escola se juntam, e quem passou por duas escolas conta
+      em cada uma. Traz o intervalo de confiança de Wilson (95%), porque com escolas pequenas a
+      taxa sozinha engana, e a mesma taxa calculada com a frequência oficial da avaliação, como
+      referência.
+    config:
+      contract:
+        enforced: true
+    data_tests:
+      - dbt_utils.expression_is_true:
+          name: mart_escola__intervalo_contem_taxa
+          description: "O intervalo de confiança sempre contém a taxa observada."
+          arguments:
+            expression: "ic95_inferior_pct <= pct_alunos_abaixo_75 and pct_alunos_abaixo_75 <= ic95_superior_pct"
+      - dbt_utils.expression_is_true:
+          name: mart_escola__ranking_so_com_amostra
+          description: "Só as escolas com amostra suficiente entram no ranking."
+          arguments:
+            expression: "(posicao_ranking is not null) = amostra_suficiente"
+      - dbt_utils.expression_is_true:
+          name: mart_escola__abaixo_de_75_cabe_no_total
+          description: "Os alunos abaixo de 75% são parte dos alunos da escola."
+          arguments:
+            expression: "qtd_alunos_abaixo_75 <= qtd_alunos"
+    columns:
+      - name: id_escola
+        data_type: string
+        description: "Hash da escola. Chave do mart."
+        constraints:
+          - type: not_null
+        data_tests:
+          - unique
+          - relationships:
+              arguments:
+                to: ref('stg_educacao__escola')
+                field: id_escola
+      - name: id_bairro_escola
+        data_type: string
+        description: "Hash do bairro da escola."
+      - name: qtd_alunos
+        data_type: int64
+        description: "Alunos com frequência registrada na escola."
+        constraints:
+          - type: not_null
+      - name: qtd_alunos_abaixo_75
+        data_type: int64
+        description: "Alunos com frequência abaixo de 75%."
+        constraints:
+          - type: not_null
+      - name: pct_alunos_abaixo_75
+        data_type: float64
+        description: "Percentual de alunos abaixo de 75% de frequência: a taxa de absenteísmo crônico da escola."
+        constraints:
+          - type: not_null
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              name: mart_escola__taxa_0_100
+              arguments:
+                min_value: 0
+                max_value: 100
+      - name: ic95_inferior_pct
+        data_type: float64
+        description: "Limite inferior do intervalo de confiança de Wilson (95%) da taxa."
+        constraints:
+          - type: not_null
+      - name: ic95_superior_pct
+        data_type: float64
+        description: "Limite superior do intervalo de confiança de Wilson (95%) da taxa."
+        constraints:
+          - type: not_null
+      - name: frequencia_media_pct
+        data_type: float64
+        description: "Frequência média dos alunos da escola, de 0 a 100."
+      - name: amostra_suficiente
+        data_type: bool
+        description: "A escola tem 30 alunos ou mais. Abaixo disso, a taxa é instável e a escola fica fora do ranking."
+        constraints:
+          - type: not_null
+      - name: posicao_ranking
+        data_type: int64
+        description: "Posição entre as escolas com amostra suficiente, ordenadas pelo limite inferior do intervalo (1 = maior absenteísmo com 95% de confiança). Nula para as demais."
+      - name: qtd_alunos_avaliacao
+        data_type: int64
+        description: "Alunos da escola com frequência oficial na avaliação, no 1º semestre. Nulo quando a avaliação não alcança a escola."
+      - name: pct_alunos_abaixo_75_avaliacao
+        data_type: float64
+        description: "Referência: percentual de alunos abaixo de 75% na frequência oficial da avaliação, no 1º semestre (média simples dos bimestres 1 e 2)."
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              name: mart_escola__taxa_avaliacao_0_100
+              arguments:
+                min_value: 0
+                max_value: 100
+
+  - name: mart_educacao__absenteismo_bairro
+    description: >
+      Absenteísmo crônico por bairro da escola: a mesma medida do mart por escola, somando os
+      alunos das escolas de cada bairro. É construído a partir do mart por escola, para que as
+      duas leituras usem sempre a mesma definição. O bairro é um hash: dá para comparar bairros
+      entre si, mas não saber qual é cada um.
+    config:
+      contract:
+        enforced: true
+    data_tests:
+      - dbt_utils.expression_is_true:
+          name: mart_bairro__intervalo_contem_taxa
+          description: "O intervalo de confiança sempre contém a taxa observada."
+          arguments:
+            expression: "ic95_inferior_pct <= pct_alunos_abaixo_75 and pct_alunos_abaixo_75 <= ic95_superior_pct"
+      - dbt_utils.expression_is_true:
+          name: mart_bairro__ranking_so_com_amostra
+          description: "Só os bairros com amostra suficiente entram no ranking."
+          arguments:
+            expression: "(posicao_ranking is not null) = amostra_suficiente"
+      - dbt_expectations.expect_table_aggregation_to_equal_other_table:
+          name: mart_bairro__mesmos_alunos_do_mart_escola
+          description: "Os bairros somam exatamente os mesmos alunos que as escolas: nenhuma escola se perde na agregação."
+          arguments:
+            expression: sum(qtd_alunos)
+            compare_model: ref('mart_educacao__absenteismo_escola')
+            compare_expression: sum(qtd_alunos)
+    columns:
+      - name: id_bairro_escola
+        data_type: string
+        description: "Hash do bairro da escola. Chave do mart."
+        constraints:
+          - type: not_null
+        data_tests:
+          - unique
+      - name: qtd_escolas
+        data_type: int64
+        description: "Escolas do bairro com dados de frequência."
+        constraints:
+          - type: not_null
+      - name: qtd_alunos
+        data_type: int64
+        description: "Alunos com frequência registrada nas escolas do bairro."
+        constraints:
+          - type: not_null
+      - name: qtd_alunos_abaixo_75
+        data_type: int64
+        description: "Alunos com frequência abaixo de 75%."
+        constraints:
+          - type: not_null
+      - name: pct_alunos_abaixo_75
+        data_type: float64
+        description: "Percentual de alunos abaixo de 75% de frequência nas escolas do bairro."
+        constraints:
+          - type: not_null
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              name: mart_bairro__taxa_0_100
+              arguments:
+                min_value: 0
+                max_value: 100
+      - name: ic95_inferior_pct
+        data_type: float64
+        description: "Limite inferior do intervalo de confiança de Wilson (95%) da taxa."
+        constraints:
+          - type: not_null
+      - name: ic95_superior_pct
+        data_type: float64
+        description: "Limite superior do intervalo de confiança de Wilson (95%) da taxa."
+        constraints:
+          - type: not_null
+      - name: frequencia_media_pct
+        data_type: float64
+        description: "Frequência média dos alunos do bairro, de 0 a 100 (média das escolas ponderada pelo número de alunos)."
+      - name: amostra_suficiente
+        data_type: bool
+        description: "O bairro tem 30 alunos ou mais nas suas escolas."
+        constraints:
+          - type: not_null
+      - name: posicao_ranking
+        data_type: int64
+        description: "Posição entre os bairros com amostra suficiente, pelo limite inferior do intervalo. Nula para os demais."
