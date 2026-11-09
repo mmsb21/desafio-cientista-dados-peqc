@@ -1,0 +1,99 @@
+version: 2
+
+sources:
+  - name: educacao
+    description: ""
+    schema: rmi_raw
+    tables:
+      - name: aluno
+        description: ""
+        columns:
+          - name: id_aluno
+            data_type: bytes
+            description: ""
+          - name: id_turma
+            data_type: int64
+            description: ""
+          - name: faixa_etaria
+            data_type: string
+            description: ""
+          - name: bairro
+            data_type: int64
+            description: ""
+
+      - name: avaliacao
+        description: ""
+        columns:
+          - name: id_aluno
+            data_type: bytes
+            description: ""
+          - name: id_turma
+            data_type: int64
+            description: ""
+          - name: frequencia
+            data_type: float64
+            description: ""
+          - name: bimestre
+            data_type: string
+            description: ""
+          - name: disciplina_1
+            data_type: float64
+            description: ""
+          - name: disciplina_2
+            data_type: float64
+            description: ""
+          - name: disciplina_3
+            data_type: float64
+            description: ""
+          - name: disciplina_4
+            data_type: float64
+            description: ""
+
+      - name: escola
+        description: ""
+        columns:
+          - name: id_escola
+            data_type: int64
+            description: ""
+          - name: bairro
+            data_type: int64
+            description: ""
+
+      - name: frequencia
+        description: ""
+        columns:
+          - name: id_escola
+            data_type: int64
+            description: ""
+          - name: id_aluno
+            data_type: bytes
+            description: ""
+          - name: id_turma
+            data_type: int64
+            description: ""
+          - name: data_inicio
+            data_type: string
+            description: ""
+          - name: data_fim
+            data_type: string
+            description: ""
+          - name: disciplina
+            data_type: string
+            description: ""
+          - name: frequencia
+            data_type: float64
+            description: ""
+
+      - name: turma
+        description: ""
+        columns:
+          - name: ano
+            data_type: int64
+            description: ""
+          - name: id_turma
+            data_type: int64
+            description: ""
+          - name: id_aluno
+            data_type: bytes
+            description: ""
+
