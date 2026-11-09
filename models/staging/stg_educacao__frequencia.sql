@@ -1,8 +1,8 @@
 -- Frequência por aluno × turma × disciplina × período (em geral mensal).
 -- Limpeza: ids em texto, datas como DATE, disciplina pelo nome e deduplicação.
 -- O id do aluno vira `id_aluno_frequencia` porque não identifica o mesmo aluno do cadastro.
--- `frequencia_bruta` guarda o valor da origem (gravado sem o ×100); as faltas são
--- reconstruídas na camada intermediate, com o calendário letivo.
+-- `frequencia_bruta` guarda o valor da origem, gravado sem o ×100; a correção é feita
+-- na camada intermediate.
 with source as (
     select * from {{ source('educacao', 'frequencia') }}
 ),

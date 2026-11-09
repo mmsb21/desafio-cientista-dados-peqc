@@ -396,8 +396,8 @@ models:
     description: >
       Frequência por aluno × turma × disciplina × período (em geral mensal), com ids em
       texto, datas como DATE e disciplina pelo nome. Deduplicada: quando a origem repete a
-      chave, fica a linha de menor frequência (mais faltas). As faltas ainda não estão
-      reconstruídas: isso acontece na camada intermediate, com o calendário letivo.
+      chave, fica a linha de menor frequência (mais faltas). A correção do ×100 é feita
+      na camada intermediate.   
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           name: stg_frequencia__grao_unico
@@ -452,6 +452,6 @@ models:
         data_type: float64
         description: >
           Valor da origem, gravado como 100 − faltas/dias_letivos (sem o ×100). Não é
-          percentual: as faltas são reconstruídas na intermediate.
+          percentual: a intermediate aplica o ×100 que faltou.
         data_tests:
           - not_null

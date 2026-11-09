@@ -1,0 +1,207 @@
+version: 2
+
+models:
+  - name: int_educacao__frequencia_vinculo
+    description: >
+      Frequência por vínculo (aluno × turma × escola) em todo o período coberto pela tabela de
+      frequência, nas 4 disciplinas. A origem gravou 100 − faltas/dias, sem o ×100; a frequência
+      certa sai da própria coluna: 100 − 100 × (100 − frequencia_bruta). A frequência do vínculo
+      é a média simples dos registros (disciplina × período), então cada período pesa igual.
+      O id do aluno é o da frequência e não se liga ao cadastro de alunos. Materializado como
+      tabela por ser o modelo mais pesado do projeto.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          name: int_frequencia_vinculo__grao_unico
+          description: "1 linha por escola × turma × aluno."
+          arguments:
+            combination_of_columns: [id_escola, id_turma, id_aluno_frequencia]
+    columns:
+      - name: id_escola
+        data_type: string
+        description: "Escola do vínculo."
+        data_tests:
+          - not_null
+          - relationships:
+              description: "O mart agrega por escola: todo vínculo precisa de uma escola cadastrada."
+              arguments:
+                to: ref('stg_educacao__escola')
+                field: id_escola
+      - name: id_turma
+        data_type: string
+        description: "Turma do vínculo."
+        data_tests:
+          - not_null
+      - name: id_aluno_frequencia
+        data_type: string
+        description: "Id do aluno na tabela de frequência. Não é o mesmo id do cadastro de alunos."
+        data_tests:
+          - not_null
+      - name: qtd_registros
+        data_type: int64
+        description: "Registros (disciplina × período) do vínculo."
+      - name: qtd_disciplinas
+        data_type: int64
+        description: "Disciplinas com registro (esperado: 4)."
+      - name: qtd_periodos
+        data_type: int64
+        description: "Períodos de apuração com registro. Poucos períodos indicam entrada ou saída no meio do ano."
+      - name: primeira_data
+        data_type: date
+        description: "Início do primeiro período com registro."
+      - name: ultima_data
+        data_type: date
+        description: "Fim do último período com registro."
+      - name: soma_frequencia_pct
+        data_type: float64
+        description: "Soma das frequências corrigidas dos registros. Junto com qtd_registros, permite juntar vínculos sem tirar média de médias."
+      - name: frequencia_media_pct
+        data_type: float64
+        description: "Frequência do vínculo, de 0 a 100: média simples das frequências corrigidas dos registros."
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              name: int_frequencia_vinculo__frequencia_0_100
+              arguments:
+                min_value: 0
+                max_value: 100
+      - name: qtd_registros_limitados
+        data_type: int64
+        description: "Registros em que a correção dava frequência negativa (mais faltas que dias no período) e o valor ficou em 0."
+
+  - name: int_educacao__turma
+    description: >
+      Turma com escola e cobertura em cada fonte: 1 linha por turma que aparece na frequência,
+      na matrícula ou na avaliação. A escola só existe para as turmas da frequência, a única
+      tabela com turma e escola juntas; nas demais fica nula, e o modelo marca de que fontes a
+      turma veio. As contagens de alunos são as da extração, e não o tamanho real da turma.
+      Materializado como tabela porque lê a frequência inteira para tirar o par turma → escola.
+    data_tests:
+      - dbt_utils.expression_is_true:
+          name: int_turma__escola_so_com_frequencia
+          description: "A escola vem só da frequência: existe se, e somente se, a turma aparece nela."
+          arguments:
+            expression: "(id_escola is not null) = tem_frequencia"
+    columns:
+      - name: id_turma
+        data_type: string
+        description: "Hash da turma. Chave do modelo."
+        data_tests:
+          - unique:
+              description: "Guarda a premissa de que, na frequência, cada turma pertence a uma única escola: uma turma em duas escolas viraria duas linhas."
+          - not_null
+      - name: id_escola
+        data_type: string
+        description: "Escola da turma, vinda da frequência. Nula quando a turma não aparece na frequência."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_educacao__escola')
+                field: id_escola
+      - name: id_bairro_escola
+        data_type: string
+        description: "Hash do bairro da escola. Nulo quando a turma não tem escola."
+      - name: tem_frequencia
+        data_type: boolean
+        description: "A turma aparece na frequência e, portanto, tem escola."
+      - name: tem_matricula
+        data_type: boolean
+        description: "A turma aparece na matrícula (tabela `turma` da origem)."
+      - name: tem_avaliacao
+        data_type: boolean
+        description: "A turma aparece na avaliação."
+      - name: qtd_alunos_frequencia
+        data_type: int64
+        description: "Alunos distintos da turma na frequência."
+      - name: qtd_alunos_matricula
+        data_type: int64
+        description: "Alunos da turma na matrícula da extração (amostra; não é o tamanho real da turma)."
+      - name: qtd_alunos_avaliacao
+        data_type: int64
+        description: "Alunos distintos da turma na avaliação."
+
+  - name: int_educacao__aluno_frequencia
+    description: >
+      Frequência oficial e nota média por aluno e turma, no semestre (bimestres 1 e 2) e no
+      ano. É o "alunos + matrículas + frequência" do enunciado, feito com a frequência da
+      avaliação, calculada pelo sistema de origem, porque ali o id do aluno é o mesmo do
+      cadastro (na tabela de frequência, não é). A frequência é usada como veio, e cada janela
+      é a média simples dos bimestres. A escola vem da turma e só existe para turmas da
+      frequência.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          name: int_aluno_frequencia__grao_unico
+          description: "1 linha por aluno × turma."
+          arguments:
+            combination_of_columns: [id_aluno, id_turma]
+    columns:
+      - name: id_aluno
+        data_type: string
+        description: "Hash do aluno; mesmo id do cadastro."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_educacao__aluno')
+                field: id_aluno
+      - name: id_turma
+        data_type: string
+        description: "Turma em que o aluno foi avaliado."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('int_educacao__turma')
+                field: id_turma
+      - name: id_escola
+        data_type: string
+        description: "Escola da turma, vinda de `int_educacao__turma`. Nula quando a turma não aparece na frequência."
+      - name: id_bairro_escola
+        data_type: string
+        description: "Hash do bairro da escola."
+      - name: faixa_etaria
+        data_type: string
+        description: "Faixa etária do aluno na extração, não durante o ano letivo."
+      - name: id_bairro_residencia
+        data_type: string
+        description: "Hash do bairro de residência do aluno. Não é comparável com o bairro da escola."
+      - name: turma_da_matricula
+        data_type: boolean
+        description: "Esta é a turma atual do aluno na matrícula. Falso quando o aluno foi avaliado numa turma em que não está mais."
+        data_tests:
+          - not_null
+      - name: qtd_bimestres
+        data_type: int64
+        description: "Bimestres com registro na avaliação (1 a 4)."
+      - name: qtd_bimestres_abaixo_75
+        data_type: int64
+        description: "Bimestres em que a frequência ficou abaixo de 75%."
+      - name: frequencia_media_semestre_pct
+        data_type: float64
+        description: "Média simples da frequência oficial nos bimestres 1 e 2, de 0 a 100. É a janela comparável com a tabela de frequência."
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              name: int_aluno_frequencia__semestre_0_100
+              arguments:
+                min_value: 0
+                max_value: 100
+      - name: frequencia_media_ano_pct
+        data_type: float64
+        description: "Média simples da frequência oficial nos bimestres com registro, de 0 a 100. A LDB exige no mínimo 75%."
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              name: int_aluno_frequencia__ano_0_100
+              arguments:
+                min_value: 0
+                max_value: 100
+      - name: nota_media_semestre
+        data_type: float64
+        description: "Média das notas de Português, Ciências e Matemática nos bimestres 1 e 2. Nula para quem não tem nota, como os alunos mais novos."
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              name: int_aluno_frequencia__nota_semestre_0_10
+              arguments:
+                min_value: 0
+                max_value: 10
+      - name: nota_media_ano
+        data_type: float64
+        description: "Média das notas de Português, Ciências e Matemática no ano."
