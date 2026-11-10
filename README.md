@@ -1,5 +1,7 @@
 # Desafio RMI — Cientista de Dados (Prefeitura do Rio)
 
+[![dbt build](https://github.com/mmsb21/desafio-cientista-dados-peqc/actions/workflows/dbt.yml/badge.svg)](https://github.com/mmsb21/desafio-cientista-dados-peqc/actions/workflows/dbt.yml)
+
 Projeto dbt sobre BigQuery que modela dados anonimizados da rede municipal de educação
 do Rio de Janeiro, extraídos do RMI (Registro Municipal Integrado), com foco em
 frequência escolar e absenteísmo crônico.
@@ -49,12 +51,15 @@ modelos são criados nos datasets `dbt_dev_staging`, `dbt_dev_intermediate` e
 ## Estrutura
 
 ```
+├── .github/workflows/
+│   └── dbt.yml         CI: dbt build a cada push e pull request no master
 ├── models/
 │   ├── staging/        5 modelos (1 por tabela de origem), sources e testes
 │   ├── intermediate/   3 modelos, testes e testes unitários
 │   ├── marts/          2 modelos, contratos, testes e testes unitários
 │   └── exposures.yml   a análise do README, ligada aos dois marts
 ├── tests/              testes de regra de negócio
+├── analyses/           numeros_do_readme.sql: os números da análise, a partir dos marts
 ├── macros/             wilson_ic (intervalo de confiança de Wilson)
 ├── data/               Parquets baixados para o notebook (fora do git)
 ├── notebooks/
@@ -213,6 +218,9 @@ Cada camada testa o que pode quebrar nela:
 - **Testes unitários:** a correção do ×100 e o intervalo de Wilson, com entradas fixas e
   saída conhecida, independentes dos dados.
 
+A justificativa de cada teste está no campo `description` do próprio YAML. Os `not_null`
+sem descrição guardam chaves e colunas obrigatórias, pela regra da camada descrita acima.
+
 No total são 91 testes de dados e 2 testes unitários. Para rodar uma parte só:
 `dbt test -s test_type:singular`, `dbt test -s test_type:unit` ou `dbt build -s tag:marts`.
 
@@ -220,6 +228,25 @@ No total são 91 testes de dados e 2 testes unitários. Para rodar uma parte só
 porque o BigQuery lia `frequencia` como a linha inteira, que nunca é nula. O teste da
 premissa usa `frequencia.frequencia` por isso. Um teste que passa não prova nada se não
 testa a coisa certa.
+
+### Integração contínua
+
+O workflow `.github/workflows/dbt.yml` roda a cada push e pull request no `master`:
+`dbt deps`, `dbt source freshness` e o `dbt build` completo, com modelos, testes de dados
+e testes unitários.
+
+- **Datasets separados:** o CI usa o prefixo `dbt_ci` (variável `DBT_DATASET`), então
+  constrói tudo em `dbt_ci_staging`, `dbt_ci_intermediate` e `dbt_ci_marts`, sem tocar nos
+  datasets de desenvolvimento.
+- **Credencial:** uma conta de serviço só com os papéis `bigquery.jobUser` e
+  `bigquery.dataEditor` no projeto. A chave fica apenas nos Secrets do GitHub
+  (`GCP_SA_KEY`), e o `profiles.yml` é o mesmo do desenvolvimento: a action de
+  autenticação aponta a credencial padrão do Google para a chave.
+- **Reprodutível:** as dependências vêm do `uv.lock` (`uv sync --locked`, sem as do
+  notebook), as actions estão fixadas pelo hash do commit, e só roda uma execução por
+  vez, para duas não escreverem nos mesmos datasets.
+- **Limite do Sandbox:** as tabelas expiram em 60 dias. Depois disso, o `rmi_raw` deixa
+  de existir e o CI falha até a carga ser refeita com `scripts/load_raw.py`.
 
 ## Análise dos resultados
 
@@ -230,12 +257,13 @@ testa a coisa certa.
 (alunos de 11 a 17 anos), no período que ela cobre (fevereiro a outubro, quase tudo até
 julho).
 
-1. **A taxa da rede é baixa: 3,1%** (3.119 alunos abaixo de 75%). A escola mediana tem
-   1,8%, uma em cada dez fica acima de 7,4%, e a maior chega a 25,4%.
-2. **O problema é concentrado.** Entre as 475 escolas com 30 alunos ou mais, 120 não têm
-   nenhum aluno abaixo de 75%. As 47 escolas com as maiores taxas (10%) têm 9,7% dos
-   alunos, mas um terço dos alunos abaixo de 75%; 83 escolas respondem pela metade deles.
-   Uma ação concentrada em poucas escolas alcança a maior parte do problema.
+1. **A taxa da rede é baixa: 3,1%** (3.119 alunos abaixo de 75%). Entre as 475 escolas com
+   30 alunos ou mais, a mediana é 1,8%, uma em cada dez fica acima de 7,4%, e a maior chega
+   a 25,4%.
+2. **O problema é concentrado.** Nessas 475 escolas, 120 não têm nenhum aluno abaixo de
+   75%. As 47 com as maiores taxas (10%) têm 9,7% dos alunos, mas um terço dos alunos
+   abaixo de 75%; seguindo a mesma ordem, 83 escolas respondem pela metade deles. Uma ação
+   concentrada em poucas escolas alcança a maior parte do problema.
 3. **O ranking leva em conta a incerteza.** 89 escolas ficam acima da taxa da rede com 95%
    de confiança. As cinco primeiras, ordenadas pelo limite inferior do intervalo:
 
@@ -251,8 +279,8 @@ julho).
    e não dá para afirmar com a mesma segurança que ela está tão acima da rede.
 4. **A escola pesa mais que o território.** Da variação da frequência entre alunos, 14,9%
    está entre escolas e só 4,2% entre os bairros onde elas ficam. Metade dos 135 bairros
-   tem no máximo 2 escolas com dados, e o topo do ranking por bairro é formado por bairros
-   de uma escola só. O foco da ação deve ser a escola; o bairro é uma leitura complementar.
+   tem no máximo 2 escolas com dados, e os quatro primeiros do ranking por bairro têm uma
+   escola só. O foco da ação deve ser a escola; o bairro é uma leitura complementar.
 5. **A frequência oficial confirma a ordem.** Nas 363 escolas com 30 alunos ou mais nas
    duas fontes, a taxa corrigida e a da avaliação têm correlação de 0,67. O nível da
    oficial é mais alto (5,2% contra 3,1%), por isso ela entra como referência, não como
@@ -265,7 +293,9 @@ julho).
    tamanho não importa: não há o tamanho real da turma (a matrícula é uma amostra), nem
    série, turno ou dado de professor, e o tamanho da turma não é aleatório.
 
-Os itens 4, 6 e 7 são reproduzidos no [notebook de análise exploratória](notebooks/eda.ipynb).
+Os números saem de [`analyses/numeros_do_readme.sql`](analyses/numeros_do_readme.sql), que
+consulta os marts (`uv run dbt show -s numeros_do_readme --output json`), e do
+[notebook de análise exploratória](notebooks/eda.ipynb), que reproduz os itens 4, 6 e 7.
 
 **Limites:** os dados são anonimizados e aleatorizados, então os números ilustram o método
 e não descrevem a rede real. A frequência cobre só alunos de 11 a 17 anos, a escola só é
@@ -309,6 +339,9 @@ escolas acima da rede.
   linhas reconstruir tudo leva segundos.
 - **Corte de 30 alunos para o ranking.** É um limite simples e documentado; o intervalo
   de Wilson mostra a incerteza de todas as escolas, inclusive as que ficam de fora.
+- **Chave de conta de serviço no CI.** É o jeito mais simples de autenticar o GitHub no
+  BigQuery. A conta só acessa o BigQuery do projeto e a chave fica nos Secrets, mas é uma
+  credencial de longa duração.
 - **Testes com tolerância.** Os testes de regra de negócio aceitam o resíduo conhecido e
   falham quando ele cresce. Isso evita um teste sempre vermelho, mas os limites precisam
   ser revistos se a origem mudar.
@@ -325,6 +358,9 @@ escolas acima da rede.
   lugar do corte de 30 alunos.
 - **Particionamento e modelos incrementais** num projeto fora do Sandbox, se a carga
   passar a ser diária.
+- **CI sem chave e só do que mudou:** autenticação por Workload Identity Federation, no
+  lugar da chave, e seleção `state:modified+` com `--defer`, para construir apenas os
+  modelos alterados quando o projeto crescer.
 - **Painel sobre os marts** (por exemplo, no Looker Studio).
 
 ## Diferenciais
@@ -342,12 +378,5 @@ escolas acima da rede.
 - **Testes unitários** e uma **macro própria** (`wilson_ic`).
 - **Notebook de análise exploratória,** que roda localmente com DuckDB e reproduz parte da
   análise.
-
-## Status
-
-- [x] Parte 1: estrutura, staging, intermediate, marts e análise
-- [x] Parte 2: testes genéricos, de regra de negócio e unitários
-- [x] Parte 3: README
-- [x] Notebook de análise exploratória
-- [ ] CI com GitHub Actions
-- [x] Exposures
+- **CI com GitHub Actions:** `dbt build` completo a cada push, em datasets separados e com
+  a credencial só nos Secrets do GitHub.

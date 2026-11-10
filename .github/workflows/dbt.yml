@@ -1,0 +1,54 @@
+name: dbt build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Duas execuções nunca escrevem ao mesmo tempo nos datasets dbt_ci_*.
+concurrency:
+  group: dbt-ci
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DBT_PROFILES_DIR: .
+      DBT_DATASET: dbt_ci # datasets separados dos de desenvolvimento (dbt_dev_*)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Instala as dependências (sem as do notebook)
+        run: uv sync --locked --no-dev
+
+      # A chave da conta de serviço fica só nos Secrets do GitHub. A action grava a chave num
+      # arquivo temporário e aponta GOOGLE_APPLICATION_CREDENTIALS para ele; o profiles.yml
+      # usa a credencial padrão, então nada muda no projeto.
+      - name: Autentica no Google Cloud
+        id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Define o projeto do BigQuery
+        env:
+          PROJECT_ID: ${{ steps.auth.outputs.project_id }} # vem da própria chave
+        run: echo "GCP_PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
+
+      - name: dbt deps
+        run: uv run --no-sync dbt deps
+
+      - name: dbt source freshness
+        run: uv run --no-sync dbt source freshness
+
+      - name: dbt build
+        run: uv run --no-sync dbt build
