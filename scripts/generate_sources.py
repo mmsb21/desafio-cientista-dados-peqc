@@ -1,7 +1,7 @@
 """Gera o esqueleto das sources do RMI com o codegen (pacote dbt-labs/codegen).
 
-    Como usar:  source .env && uv run python scripts/generate_sources.py [arquivo_de_saida]
-
+Como usar (com GCP_PROJECT_ID definido, como no README):
+    uv run python scripts/generate_sources.py [arquivo_de_saida]
 """
 
 import json
@@ -10,10 +10,10 @@ import sys
 from pathlib import Path
 
 ARGUMENTOS = {
-    "schema_name": "rmi_raw", 
-    "name": "educacao",  
-    "generate_columns": True, 
-    "include_descriptions": True, 
+    "schema_name": "rmi_raw",
+    "name": "educacao",
+    "generate_columns": True,
+    "include_descriptions": True,
 }
 
 

@@ -1,8 +1,9 @@
 """Gera o esqueleto SQL dos modelos de staging com o codegen (generate_base_model).
 
-    Como usar:  source .env && uv run python scripts/generate_staging.py 
+Gera para as 5 tabelas da source `educacao`.
 
-    Gera para as 5 tabelas da source `educacao`.
+Como usar (com GCP_PROJECT_ID definido, como no README):
+    uv run python scripts/generate_staging.py
 """
 
 import json
@@ -15,7 +16,7 @@ PASTA = Path("models/staging")
 MODELOS = {
     "aluno": "stg_educacao__aluno",
     "escola": "stg_educacao__escola",
-    "turma": "stg_educacao__aluno_turma", 
+    "turma": "stg_educacao__aluno_turma",
     "frequencia": "stg_educacao__frequencia",
     "avaliacao": "stg_educacao__avaliacao",
 }

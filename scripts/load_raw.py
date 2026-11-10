@@ -1,6 +1,7 @@
 """Carrega os Parquets do desafio (gs://case_vagas/rmi) no BigQuery, sem transformação.
 
-    Como usar: source .env && uv run python scripts/carregar_raw.py
+Como usar (com GCP_PROJECT_ID definido, como no README):
+    uv run python scripts/load_raw.py
 """
 
 import os
@@ -17,10 +18,10 @@ def main():
     projeto = os.environ.get("GCP_PROJECT_ID")
     if not projeto:
         sys.exit("Defina GCP_PROJECT_ID.")
-    
+
     dataset_id = f"{projeto}.{os.environ.get('RAW_DATASET', 'rmi_raw')}"
     client = bq.Client(project=projeto, location=LOCALIZACAO)
-    
+
     dataset = bq.Dataset(dataset_id)
     dataset.description = "Parquets brutos do desafio RMI, carregados sem transformação."
     client.create_dataset(dataset, exists_ok=True)
@@ -37,5 +38,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

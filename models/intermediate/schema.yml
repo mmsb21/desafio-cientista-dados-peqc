@@ -61,6 +61,7 @@ models:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               name: int_frequencia_vinculo__frequencia_0_100
+              description: "Depois da correção do ×100 e do limite em 0, a frequência do vínculo precisa ser um percentual válido."
               arguments:
                 min_value: 0
                 max_value: 100
@@ -94,6 +95,7 @@ models:
         description: "Escola da turma, vinda da frequência. Nula quando a turma não aparece na frequência."
         data_tests:
           - relationships:
+              description: "A escola que a turma herda da frequência existe no cadastro de escolas."
               arguments:
                 to: ref('stg_educacao__escola')
                 field: id_escola
@@ -140,6 +142,7 @@ models:
         data_tests:
           - not_null
           - relationships:
+              description: "Todo aluno avaliado existe no cadastro, de onde vêm a faixa etária e o bairro de residência."
               arguments:
                 to: ref('stg_educacao__aluno')
                 field: id_aluno
@@ -149,6 +152,7 @@ models:
         data_tests:
           - not_null
           - relationships:
+              description: "Toda turma avaliada está em `int_educacao__turma`, de onde vem a escola."
               arguments:
                 to: ref('int_educacao__turma')
                 field: id_turma
@@ -181,6 +185,7 @@ models:
         data_tests:
           - dbt_expectations.expect_column_values_to_be_between:
               name: int_aluno_frequencia__semestre_0_100
+              description: "A frequência oficial do semestre precisa ser um percentual válido; é a base da referência no mart."
               arguments:
                 min_value: 0
                 max_value: 100
@@ -190,6 +195,7 @@ models:
         data_tests:
           - dbt_expectations.expect_column_values_to_be_between:
               name: int_aluno_frequencia__ano_0_100
+              description: "A frequência oficial do ano precisa ser um percentual válido; a regra dos 75% depende disso."
               arguments:
                 min_value: 0
                 max_value: 100
@@ -199,6 +205,7 @@ models:
         data_tests:
           - dbt_expectations.expect_column_values_to_be_between:
               name: int_aluno_frequencia__nota_semestre_0_10
+              description: "A média das notas fica na escala de 0 a 10; fora dela, a soma ou a contagem das notas está errada."
               arguments:
                 min_value: 0
                 max_value: 10

@@ -4,9 +4,9 @@ O codegen lê colunas e tipos das views no BigQuery: o modelo precisa ter rodado
 (`dbt run -s <modelo>`). Nunca reescreve o arquivo: só acrescenta, no fim, os modelos que
 ainda não estão documentados. Descrições e testes são completados à mão depois.
 
-Como usar:
-    source .env && uv run python scripts/generate_model_yaml.py                       # todos de uma vez
-    source .env && uv run python scripts/generate_model_yaml.py stg_educacao__aluno   # só os escolhidos
+Como usar (com GCP_PROJECT_ID definido, como no README):
+    uv run python scripts/generate_model_yaml.py                       # todos de uma vez
+    uv run python scripts/generate_model_yaml.py stg_educacao__aluno   # só os escolhidos
 """
 import json
 import re

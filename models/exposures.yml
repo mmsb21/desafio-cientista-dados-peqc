@@ -9,7 +9,7 @@ exposures:
     description: >
       Análise dos resultados publicada no README: taxa da rede, concentração do problema,
       ranking das escolas com intervalo de Wilson, comparação com a frequência oficial e
-      leitura por bairro. Os números saem de consultas aos dois marts.
+      leitura por bairro. Os números saem de `analyses/numeros_do_readme.sql`, que consulta os dois marts.
     depends_on:
       - ref('mart_educacao__absenteismo_escola')
       - ref('mart_educacao__absenteismo_bairro')

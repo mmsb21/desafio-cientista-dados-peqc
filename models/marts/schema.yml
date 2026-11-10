@@ -35,8 +35,10 @@ models:
         constraints:
           - type: not_null
         data_tests:
-          - unique
+          - unique:
+              description: "1 linha por escola: o ranking e a soma por bairro dependem disso."
           - relationships:
+              description: "Toda escola do mart existe no cadastro, de onde vem o bairro."
               arguments:
                 to: ref('stg_educacao__escola')
                 field: id_escola
@@ -61,6 +63,7 @@ models:
         data_tests:
           - dbt_expectations.expect_column_values_to_be_between:
               name: mart_escola__taxa_0_100
+              description: "A taxa é um percentual: fora de 0 a 100, a contagem de alunos está errada."
               arguments:
                 min_value: 0
                 max_value: 100
@@ -94,6 +97,7 @@ models:
         data_tests:
           - dbt_expectations.expect_column_values_to_be_between:
               name: mart_escola__taxa_avaliacao_0_100
+              description: "A taxa de referência também precisa ser um percentual válido."
               arguments:
                 min_value: 0
                 max_value: 100
@@ -132,7 +136,8 @@ models:
         constraints:
           - type: not_null
         data_tests:
-          - unique
+          - unique:
+              description: "1 linha por bairro: o ranking por bairro depende disso."
       - name: qtd_escolas
         data_type: int64
         description: "Escolas do bairro com dados de frequência."
@@ -156,6 +161,7 @@ models:
         data_tests:
           - dbt_expectations.expect_column_values_to_be_between:
               name: mart_bairro__taxa_0_100
+              description: "A taxa do bairro é um percentual: fora de 0 a 100, a soma das escolas está errada."
               arguments:
                 min_value: 0
                 max_value: 100

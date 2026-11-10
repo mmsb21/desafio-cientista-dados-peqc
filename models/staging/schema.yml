@@ -84,7 +84,7 @@ sources:
             data_tests:
               - dbt_expectations.expect_column_values_to_be_between:
                   name: src_avaliacao__frequencia_percentual
-                  description: "Percentual válido; é a referência para conferir a frequência reconstruída a partir da tabela `frequencia`."
+                  description: "Percentual válido; é a referência para conferir a frequência corrigida da tabela `frequencia`."
                   arguments:
                     min_value: 0
                     max_value: 100
@@ -178,9 +178,9 @@ sources:
           - dbt_utils.expression_is_true:
               name: src_frequencia__formula_sem_x100
               description: >
-                Guarda da premissa de reconstrução: `frequencia` precisa existir e ficar entre
+                Guarda da premissa da correção: `frequencia` precisa existir e ficar entre
                 90 e 100. Se surgir valor abaixo de 90, a origem passou a gravar o percentual
-                correto e o cálculo das faltas precisa mudar. A coluna aparece como
+                correto e a correção do ×100 precisa sair. A coluna aparece como
                 `frequencia.frequencia` porque tem o mesmo nome da tabela: sem o prefixo,
                 o BigQuery entende `frequencia` como a linha inteira.
               arguments:
@@ -226,7 +226,7 @@ sources:
             description: "disciplina_1 = Português, disciplina_2 = Ciências, disciplina_3 = Inglês, disciplina_4 = Matemática."
             data_tests:
               - accepted_values:
-                  description: "A reconstrução das faltas soma exatamente estas 4 disciplinas."
+                  description: "A staging dá nome a exatamente estas 4 disciplinas; uma nova ficaria sem nome."
                   arguments:
                     values: ["disciplina_1", "disciplina_2", "disciplina_3", "disciplina_4"]
           - name: frequencia
@@ -358,6 +358,7 @@ models:
         data_tests:
           - not_null
           - accepted_values:
+              description: "A conversão de texto para inteiro só pode resultar nos 4 bimestres; outro valor indicaria falha na conversão."
               arguments:
                 values: [1, 2, 3, 4]
                 quote: false
@@ -436,6 +437,7 @@ models:
         data_tests:
           - not_null
           - accepted_values:
+              description: "Só os 4 nomes que a staging atribui; com o not_null, garante que toda disciplina da origem foi mapeada."
               arguments:
                 values: ["portugues", "ciencias", "ingles", "matematica"]
       - name: data_inicio
