@@ -1,0 +1,17 @@
+version: 2
+
+exposures:
+  - name: analise_absenteismo
+    label: Análise do absenteísmo crônico (README)
+    type: analysis
+    maturity: medium
+    url: https://github.com/mmsb21/desafio-cientista-dados-peqc#an%C3%A1lise-dos-resultados
+    description: >
+      Análise dos resultados publicada no README: taxa da rede, concentração do problema,
+      ranking das escolas com intervalo de Wilson, comparação com a frequência oficial e
+      leitura por bairro. Os números saem de consultas aos dois marts.
+    depends_on:
+      - ref('mart_educacao__absenteismo_escola')
+      - ref('mart_educacao__absenteismo_bairro')
+    owner:
+      name: Marcio Barbosa

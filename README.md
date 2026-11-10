@@ -52,7 +52,8 @@ modelos são criados nos datasets `dbt_dev_staging`, `dbt_dev_intermediate` e
 ├── models/
 │   ├── staging/        5 modelos (1 por tabela de origem), sources e testes
 │   ├── intermediate/   3 modelos, testes e testes unitários
-│   └── marts/          2 modelos, contratos, testes e testes unitários
+│   ├── marts/          2 modelos, contratos, testes e testes unitários
+│   └── exposures.yml   a análise do README, ligada aos dois marts
 ├── tests/              testes de regra de negócio
 ├── macros/             wilson_ic (intervalo de confiança de Wilson)
 ├── data/               Parquets baixados para o notebook (fora do git)
@@ -96,6 +97,8 @@ flowchart LR
   int_aluno --> mart_escola
   stg_escola --> mart_escola
   mart_escola --> mart_bairro[mart_educacao__absenteismo_bairro]
+  mart_escola --> analise{{"exposure: analise_absenteismo"}}
+  mart_bairro --> analise
 ```
 
 A tabela pública `datario.dados_mestres.bairro` está declarada como source só para
@@ -332,6 +335,9 @@ escolas acima da rede.
 - **Freshness** na source `educacao`, pensada para um extrato anual: avisa depois de 365
   dias e falha depois de 400.
 - **Tags** por camada, para rodar uma camada só: `dbt build -s tag:marts`.
+- **Exposure** da análise do README (`models/exposures.yml`), ligada aos dois marts: ela
+  aparece no lineage do `dbt docs`, e `dbt build -s +exposure:analise_absenteismo`
+  constrói e testa tudo de que a análise depende.
 - **Contratos** nos dois marts.
 - **Testes unitários** e uma **macro própria** (`wilson_ic`).
 - **Notebook de análise exploratória,** que roda localmente com DuckDB e reproduz parte da
@@ -344,4 +350,4 @@ escolas acima da rede.
 - [x] Parte 3: README
 - [x] Notebook de análise exploratória
 - [ ] CI com GitHub Actions
-- [ ] Exposures
+- [x] Exposures
