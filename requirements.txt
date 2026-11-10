@@ -11,27 +11,59 @@ anyio==4.16.0
     # via
     #   google-genai
     #   httpx
+    #   jupyter-server
+appnope==1.0.0 ; sys_platform == 'darwin'
+    # via ipykernel
+argon2-cffi==25.1.0
+    # via jupyter-server
+argon2-cffi-bindings==26.1.0
+    # via argon2-cffi
+arrow==1.4.0
+    # via isoduration
+asttokens==3.0.2
+    # via stack-data
+async-lru==2.4.0
+    # via jupyterlab
 attrs==26.1.0
     # via
     #   jsonschema
     #   referencing
 babel==2.18.0
-    # via agate
+    # via
+    #   agate
+    #   jupyterlab-server
+beautifulsoup4==4.15.0
+    # via nbconvert
+bleach==6.4.0
+    # via nbconvert
 certifi==2026.10.23
     # via
     #   httpcore
     #   httpx
     #   requests
-cffi==2.1.1 ; platform_python_implementation != 'PyPy'
-    # via cryptography
+cffi==2.1.1
+    # via
+    #   argon2-cffi-bindings
+    #   cryptography
+    #   pyzmq
 charset-normalizer==3.5.2
     # via requests
 click==8.5.1
     # via dbt-core
 colorama==0.4.6
-    # via dbt-common
+    # via
+    #   dbt-common
+    #   ipython
+comm==0.2.3
+    # via
+    #   ipykernel
+    #   ipywidgets
+contourpy==1.4.0
+    # via matplotlib
 cryptography==50.0.2
     # via google-auth
+cycler==0.12.1
+    # via matplotlib
 daff==1.4.2
     # via dbt-core
 db-dtypes==1.9.0
@@ -62,14 +94,25 @@ dbt-protos==1.0.615
     #   dbt-adapters
     #   dbt-common
     #   dbt-core
+debugpy==1.8.22
+    # via ipykernel
 deepdiff==8.6.2
     # via dbt-common
+defusedxml==0.7.1
+    # via nbconvert
 distro==1.9.0
     # via google-genai
 docstring-parser==0.18.0
     # via google-cloud-aiplatform
+duckdb==2.0.0
+executing==2.3.0
+    # via stack-data
 fastjsonschema==2.22.3
     # via nbformat
+fonttools==4.68.0
+    # via matplotlib
+fqdn==1.6.0
+    # via jsonschema
 google-api-core==2.44.0
     # via
     #   dbt-bigquery
@@ -153,55 +196,177 @@ h11==0.16.0
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-    # via google-genai
+    # via
+    #   google-genai
+    #   jupyterlab
 idna==3.20
     # via
     #   anyio
     #   httpx
+    #   jsonschema
     #   requests
 importlib-metadata==10.1.0
     # via metricflow
+ipykernel==7.4.0
+    # via
+    #   jupyter
+    #   jupyter-console
+    #   jupyterlab
+ipython==9.18.1
+    # via
+    #   ipykernel
+    #   ipywidgets
+    #   jupyter-console
+ipython-pygments-lexers==1.1.1
+    # via ipython
+ipywidgets==8.1.9
+    # via jupyter
 isodate==0.7.2
     # via
     #   agate
     #   dbt-common
+isoduration==20.11.0
+    # via jsonschema
+jedi==0.20.1
+    # via ipython
 jinja2==3.1.6
     # via
     #   dbt-common
     #   dbt-core
+    #   jupyter-server
+    #   jupyterlab
+    #   jupyterlab-server
     #   metricflow
+    #   nbconvert
+json5==0.17.3
+    # via jupyterlab-server
+jsonpointer==3.10
+    # via jsonschema
 jsonschema==4.26.0
     # via
     #   dbt-common
     #   dbt-core
+    #   jupyter-events
+    #   jupyterlab-server
     #   metricflow
     #   nbformat
 jsonschema-specifications==2025.9.1
     # via jsonschema
+jupyter==1.1.1
+    # via desafio-cientista-dados-peqc
+jupyter-builder==1.2.4
+    # via
+    #   jupyterlab
+    #   notebook
+jupyter-client==8.10.0
+    # via
+    #   ipykernel
+    #   jupyter-console
+    #   jupyter-server
+    #   nbclient
+jupyter-console==6.6.3
+    # via jupyter
 jupyter-core==5.9.1
-    # via nbformat
+    # via
+    #   ipykernel
+    #   jupyter-builder
+    #   jupyter-client
+    #   jupyter-console
+    #   jupyter-server
+    #   jupyterlab
+    #   nbclient
+    #   nbconvert
+    #   nbformat
+jupyter-events==0.12.1
+    # via jupyter-server
+jupyter-lsp==2.3.1
+    # via jupyterlab
+jupyter-server==2.21.1
+    # via
+    #   jupyter-lsp
+    #   jupyterlab
+    #   jupyterlab-server
+    #   notebook
+    #   notebook-shim
+jupyter-server-terminals==0.5.4
+    # via jupyter-server
+jupyterlab==4.6.6
+    # via
+    #   jupyter
+    #   notebook
+jupyterlab-pygments==0.3.0
+    # via nbconvert
+jupyterlab-server==2.28.1
+    # via
+    #   jupyterlab
+    #   notebook
+jupyterlab-widgets==3.0.17
+    # via ipywidgets
+jupytext==1.19.6
+kiwisolver==1.5.1
+    # via matplotlib
+lark==1.3.1
+    # via rfc3987-syntax
 leather==0.4.1
     # via agate
+markdown-it-py==4.3.0
+    # via
+    #   jupytext
+    #   mdit-py-plugins
 markupsafe==3.0.4
-    # via jinja2
+    # via
+    #   jinja2
+    #   nbconvert
 mashumaro==3.17
     # via
     #   dbt-adapters
     #   dbt-common
     #   dbt-core
+matplotlib==3.11.2
+matplotlib-inline==0.2.2
+    # via
+    #   ipykernel
+    #   ipython
+mdit-py-plugins==0.7.0
+    # via jupytext
+mdurl==0.1.2
+    # via markdown-it-py
 metricflow==0.213.0
     # via dbt-core
+mistune==3.4.0
+    # via nbconvert
 more-itertools==10.8.0
     # via metricflow
 msgpack==1.2.4
     # via mashumaro
+nbclient==0.11.0
+    # via nbconvert
+nbconvert==7.17.2
+    # via
+    #   jupyter
+    #   jupyter-server
 nbformat==5.11.1
-    # via dbt-bigquery
+    # via
+    #   dbt-bigquery
+    #   jupyter-server
+    #   jupytext
+    #   nbclient
+    #   nbconvert
+nest-asyncio2==1.7.4
+    # via ipykernel
 networkx==3.7
     # via dbt-core
+notebook==7.6.5
+    # via jupyter
+notebook-shim==0.2.4
+    # via
+    #   jupyterlab
+    #   notebook
 numpy==2.5.4
     # via
+    #   contourpy
     #   db-dtypes
+    #   matplotlib
     #   pandas
     #   pandas-gbq
 oauthlib==4.0.1
@@ -219,6 +384,14 @@ packaging==26.3
     #   dbt-core
     #   google-cloud-aiplatform
     #   google-cloud-bigquery
+    #   ipykernel
+    #   jupyter-events
+    #   jupyter-server
+    #   jupyterlab
+    #   jupyterlab-server
+    #   jupytext
+    #   matplotlib
+    #   nbconvert
     #   pandas-gbq
 pandas==3.1.1
     # via
@@ -227,14 +400,28 @@ pandas==3.1.1
     #   pandas-gbq
 pandas-gbq==0.35.3
     # via google-cloud-bigquery
+pandocfilters==1.5.1
+    # via nbconvert
 parsedatetime==2.6
     # via agate
+parso==0.8.7
+    # via jedi
 pathspec==1.0.4
     # via
     #   dbt-common
     #   dbt-core
+pexpect==4.9.0 ; sys_platform != 'emscripten' and sys_platform != 'win32'
+    # via ipython
+pillow==13.0.0
+    # via matplotlib
 platformdirs==4.14.5
     # via jupyter-core
+prometheus-client==0.26.0
+    # via jupyter-server
+prompt-toolkit==3.0.53
+    # via
+    #   ipython
+    #   jupyter-console
 proto-plus==1.29.0
     # via
     #   google-api-core
@@ -256,7 +443,15 @@ protobuf==6.33.6
     #   grpcio-status
     #   proto-plus
 psutil==7.2.2
-    # via pandas-gbq
+    # via
+    #   ipython
+    #   pandas-gbq
+ptyprocess==0.7.0 ; os_name != 'nt' or (sys_platform != 'emscripten' and sys_platform != 'win32')
+    # via
+    #   pexpect
+    #   terminado
+pure-eval==0.2.4
+    # via stack-data
 pyarrow==26.0.1
     # via
     #   db-dtypes
@@ -266,7 +461,7 @@ pyasn1==0.6.5
     # via pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
-pycparser==3.12 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
+pycparser==3.12 ; implementation_name != 'PyPy'
     # via cffi
 pydantic==2.14.3
     # via
@@ -278,14 +473,27 @@ pydantic-core==2.50.4
     # via pydantic
 pydata-google-auth==1.9.1
     # via pandas-gbq
+pygments==2.21.0
+    # via
+    #   ipython
+    #   ipython-pygments-lexers
+    #   jupyter-console
+    #   nbconvert
+pyparsing==3.3.3
+    # via matplotlib
 python-dateutil==2.9.0.post0
     # via
+    #   arrow
     #   dbt-common
     #   google-cloud-bigquery
+    #   jupyter-client
+    #   matplotlib
     #   metricflow
     #   pandas
 python-dotenv==1.2.4
     # via dbt-core
+python-json-logger==4.2.0
+    # via jupyter-events
 python-slugify==9.1.3
     # via agate
 pytimeparse==1.1.10
@@ -294,16 +502,30 @@ pytz==2026.6
     # via
     #   dbt-adapters
     #   dbt-core
+pywinpty==3.1.2 ; os_name == 'nt'
+    # via
+    #   jupyter-server
+    #   jupyter-server-terminals
+    #   terminado
 pyyaml==6.0.3
     # via
     #   dbt-core
+    #   jupyter-events
+    #   jupytext
     #   metricflow
+pyzmq==27.3.0
+    # via
+    #   ipykernel
+    #   jupyter-client
+    #   jupyter-console
+    #   jupyter-server
 rapidfuzz==3.14.6
     # via metricflow
 referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
+    #   jupyter-events
     #   metricflow
 requests==2.34.2
     # via
@@ -314,47 +536,94 @@ requests==2.34.2
     #   google-cloud-bigquery
     #   google-cloud-storage
     #   google-genai
+    #   jupyterlab-server
     #   requests-oauthlib
     #   snowplow-tracker
 requests-oauthlib==2.0.0
     # via google-auth-oauthlib
+rfc3339-validator==0.1.4
+    # via
+    #   jsonschema
+    #   jupyter-events
+rfc3986-validator==0.1.1
+    # via
+    #   jsonschema
+    #   jupyter-events
+rfc3987-syntax==1.1.0
+    # via jsonschema
 rpds-py==2026.9.1
     # via
     #   jsonschema
     #   referencing
+send2trash==2.1.0
+    # via jupyter-server
 setuptools==84.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
 six==1.17.0
-    # via python-dateutil
+    # via
+    #   python-dateutil
+    #   rfc3339-validator
 sniffio==1.3.1
     # via google-genai
 snowplow-tracker==1.1.0
     # via dbt-core
+soupsieve==4.1
+    # via beautifulsoup4
 sqlglot==30.30.0
     # via metricflow
 sqlparse==0.6.1
     # via dbt-core
+stack-data==0.6.3
+    # via ipython
 tabulate==0.10.0
     # via metricflow
 tenacity==9.1.4
     # via google-genai
+terminado==0.18.1
+    # via
+    #   jupyter-server
+    #   jupyter-server-terminals
 text-unidecode==1.3
     # via python-slugify
+tinycss2==1.5.1
+    # via bleach
+tornado==6.6.1
+    # via
+    #   ipykernel
+    #   jupyter-client
+    #   jupyter-server
+    #   jupyterlab
+    #   notebook
+    #   terminado
 traitlets==5.16.1
     # via
+    #   ipykernel
+    #   ipython
+    #   ipywidgets
+    #   jupyter-builder
+    #   jupyter-client
+    #   jupyter-console
     #   jupyter-core
+    #   jupyter-events
+    #   jupyter-server
+    #   jupyterlab
+    #   matplotlib-inline
+    #   nbclient
+    #   nbconvert
     #   nbformat
 typing-extensions==4.16.0
     # via
     #   anyio
+    #   beautifulsoup4
     #   dbt-adapters
     #   dbt-common
     #   dbt-core
     #   google-cloud-aiplatform
     #   google-genai
     #   grpcio
+    #   jupyter-client
     #   mashumaro
     #   metricflow
     #   opentelemetry-api
@@ -364,13 +633,28 @@ typing-extensions==4.16.0
     #   typing-inspection
 typing-inspection==0.4.5
     # via pydantic
-tzdata==2026.6 ; sys_platform == 'emscripten' or sys_platform == 'win32'
+tzdata==2026.6
     # via
     #   agate
+    #   arrow
     #   pandas
+uri-template==1.3.0
+    # via jsonschema
 urllib3==2.8.0
     # via requests
+wcwidth==0.9.4
+    # via prompt-toolkit
+webcolors==25.10.0
+    # via jsonschema
+webencodings==0.6.1
+    # via
+    #   bleach
+    #   tinycss2
+websocket-client==1.9.2
+    # via jupyter-server
 websockets==16.1.1
     # via google-genai
+widgetsnbextension==4.0.16
+    # via ipywidgets
 zipp==4.1.2
     # via importlib-metadata

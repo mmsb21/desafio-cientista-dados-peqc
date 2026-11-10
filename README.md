@@ -30,7 +30,13 @@ uv run dbt build              # modelos e testes
 
 # 5. documentação e lineage navegáveis (opcional)
 uv run dbt docs generate && uv run dbt docs serve
+
+# 6. notebook de análise exploratória (opcional; lê os Parquets localmente com DuckDB)
+mkdir -p data && gcloud storage cp "gs://case_vagas/rmi/*" data/
+uv run jupyter nbconvert --to notebook --execute --inplace notebooks/eda.ipynb
 ```
+
+Para abrir o notebook no navegador: `uv run jupyter lab notebooks/eda.ipynb`.
 
 Sem uv: `python -m venv .venv && .venv/bin/pip install -r requirements.txt`; depois, com
 o ambiente ativado (`source .venv/bin/activate`), rode os mesmos comandos sem o `uv run`.
@@ -49,6 +55,9 @@ modelos são criados nos datasets `dbt_dev_staging`, `dbt_dev_intermediate` e
 │   └── marts/          2 modelos, contratos, testes e testes unitários
 ├── tests/              testes de regra de negócio
 ├── macros/             wilson_ic (intervalo de confiança de Wilson)
+├── data/               Parquets baixados para o notebook (fora do git)
+├── notebooks/
+│   └── eda.ipynb       análise exploratória, com DuckDB sobre os Parquets de data/
 ├── scripts/
 │   ├── load_raw.py             carga dos Parquets no BigQuery
 │   ├── generate_sources.py     codegen: YAML das sources
@@ -253,11 +262,29 @@ julho).
    tamanho não importa: não há o tamanho real da turma (a matrícula é uma amostra), nem
    série, turno ou dado de professor, e o tamanho da turma não é aleatório.
 
-Os itens 4, 6 e 7 são reproduzidos no notebook de análise exploratória.
+Os itens 4, 6 e 7 são reproduzidos no [notebook de análise exploratória](notebooks/eda.ipynb).
 
 **Limites:** os dados são anonimizados e aleatorizados, então os números ilustram o método
 e não descrevem a rede real. A frequência cobre só alunos de 11 a 17 anos, a escola só é
 conhecida pela frequência, e as médias são simples, sem o peso dos dias de cada período.
+
+## Análise exploratória
+
+O notebook [`notebooks/eda.ipynb`](notebooks/eda.ipynb) mostra os achados nos dados que
+orientaram as decisões do projeto, cada um com a consulta, o resultado e a decisão tomada:
+
+1. tipos diferentes do schema fornecido;
+2. chaves repetidas na frequência e na avaliação;
+3. a frequência gravada sem o ×100;
+4. o id de aluno da frequência, que não identifica o mesmo aluno do cadastro;
+5. a cobertura da frequência e a escola, que só aparece nela;
+6. os bairros, sem chave comum entre os dois cadastros.
+
+A seção 7 reproduz os itens 4, 6 e 7 da análise, e a 8 resume cada achado com a decisão
+correspondente. O notebook lê os Parquets localmente com DuckDB, sem gastar cota do
+BigQuery, e reaplica as regras da staging e da intermediate (ids em texto, deduplicação e
+correção do ×100). Por isso chega aos mesmos números dos marts, como a taxa de 3,1% e as 89
+escolas acima da rede.
 
 ## Trade-offs
 
@@ -307,12 +334,14 @@ conhecida pela frequência, e as médias são simples, sem o peso dos dias de ca
 - **Tags** por camada, para rodar uma camada só: `dbt build -s tag:marts`.
 - **Contratos** nos dois marts.
 - **Testes unitários** e uma **macro própria** (`wilson_ic`).
+- **Notebook de análise exploratória,** que roda localmente com DuckDB e reproduz parte da
+  análise.
 
 ## Status
 
 - [x] Parte 1: estrutura, staging, intermediate, marts e análise
 - [x] Parte 2: testes genéricos, de regra de negócio e unitários
 - [x] Parte 3: README
-- [ ] Notebook de análise exploratória
+- [x] Notebook de análise exploratória
 - [ ] CI com GitHub Actions
 - [ ] Exposures
