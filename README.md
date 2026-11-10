@@ -30,10 +30,13 @@ uv run dbt debug              # testa a conexão
 uv run dbt source freshness   # confere a atualização das fontes
 uv run dbt build              # modelos e testes
 
-# 5. documentação e lineage navegáveis (opcional)
+# 5. números da análise do README, calculados a partir dos marts
+uv run dbt show -s numeros_do_readme --output json
+
+# 6. documentação e lineage navegáveis (opcional)
 uv run dbt docs generate && uv run dbt docs serve
 
-# 6. notebook de análise exploratória (opcional; lê os Parquets localmente com DuckDB)
+# 7. notebook de análise exploratória (opcional; lê os Parquets localmente com DuckDB)
 mkdir -p data && gcloud storage cp "gs://case_vagas/rmi/*" data/
 uv run jupyter nbconvert --to notebook --execute --inplace notebooks/eda.ipynb
 ```
@@ -258,7 +261,7 @@ e testes unitários.
 julho).
 
 1. **A taxa da rede é baixa: 3,1%** (3.119 alunos abaixo de 75%). Entre as 475 escolas com
-   30 alunos ou mais, a mediana é 1,8%, uma em cada dez fica acima de 7,4%, e a maior chega
+   30 alunos ou mais, a mediana é 1,8%, uma em cada dez fica acima de 7,5%, e a maior chega
    a 25,4%.
 2. **O problema é concentrado.** Nessas 475 escolas, 120 não têm nenhum aluno abaixo de
    75%. As 47 com as maiores taxas (10%) têm 9,7% dos alunos, mas um terço dos alunos
