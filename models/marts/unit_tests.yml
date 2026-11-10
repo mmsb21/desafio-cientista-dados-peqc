@@ -1,0 +1,30 @@
+unit_tests:
+  - name: absenteismo_escola__taxa_e_intervalo_de_wilson
+    description: >
+      Uma escola com 10 alunos, 2 deles abaixo de 75%: a taxa é 20%, e o intervalo de Wilson
+      (95%) vai de 5,67% a 50,98%, bem mais largo que a taxa sugere. Com menos de 30 alunos,
+      a escola fica fora do ranking. A referência da avaliação ignora alunos de turmas sem escola.
+    model: mart_educacao__absenteismo_escola
+    given:
+      - input: ref('int_educacao__frequencia_vinculo')
+        rows:
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a01", qtd_registros: 1, soma_frequencia_pct: 90.0}
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a02", qtd_registros: 1, soma_frequencia_pct: 90.0}
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a03", qtd_registros: 1, soma_frequencia_pct: 90.0}
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a04", qtd_registros: 1, soma_frequencia_pct: 90.0}
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a05", qtd_registros: 1, soma_frequencia_pct: 90.0}
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a06", qtd_registros: 1, soma_frequencia_pct: 90.0}
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a07", qtd_registros: 1, soma_frequencia_pct: 90.0}
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a08", qtd_registros: 1, soma_frequencia_pct: 90.0}
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a09", qtd_registros: 1, soma_frequencia_pct: 60.0}
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a10", qtd_registros: 1, soma_frequencia_pct: 60.0}
+      - input: ref('int_educacao__aluno_frequencia')
+        rows:
+          - {id_aluno: "x1", id_turma: "t1", id_escola: "e1", frequencia_media_semestre_pct: 80.0}
+          - {id_aluno: "x2", id_turma: "t9", id_escola: null, frequencia_media_semestre_pct: 50.0}
+      - input: ref('stg_educacao__escola')
+        rows:
+          - {id_escola: "e1", id_bairro_escola: "b1"}
+    expect:
+      rows:
+        - {id_escola: "e1", id_bairro_escola: "b1", qtd_alunos: 10, qtd_alunos_abaixo_75: 2, pct_alunos_abaixo_75: 20.0, ic95_inferior_pct: 5.67, ic95_superior_pct: 50.98, frequencia_media_pct: 84.0, amostra_suficiente: false, posicao_ranking: null, qtd_alunos_avaliacao: 1, pct_alunos_abaixo_75_avaliacao: 0.0}

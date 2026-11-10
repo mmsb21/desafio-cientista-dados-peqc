@@ -1,0 +1,18 @@
+unit_tests:
+  - name: frequencia_vinculo__corrige_x100_e_limita_em_zero
+    description: >
+      A correção aplica o ×100 que faltou na origem: 100 − 100 × (100 − frequencia_bruta).
+      Com valores conhecidos: 100 continua 100; 99,75 vira 75; 99,5 vira 50; e 98, que
+      daria −100 (mais faltas que dias), fica em 0 e é contado como limitado. A frequência
+      do vínculo é a média simples dos quatro registros: (100 + 75 + 50 + 0) / 4 = 56,25.
+    model: int_educacao__frequencia_vinculo
+    given:
+      - input: ref('stg_educacao__frequencia')
+        rows:
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a1", disciplina: "portugues", data_inicio: "2000-02-05", data_fim: "2000-02-28", frequencia_bruta: 100.0}
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a1", disciplina: "matematica", data_inicio: "2000-02-05", data_fim: "2000-02-28", frequencia_bruta: 99.75}
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a1", disciplina: "ciencias", data_inicio: "2000-02-05", data_fim: "2000-02-28", frequencia_bruta: 99.5}
+          - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a1", disciplina: "ingles", data_inicio: "2000-02-05", data_fim: "2000-02-28", frequencia_bruta: 98.0}
+    expect:
+      rows:
+        - {id_escola: "e1", id_turma: "t1", id_aluno_frequencia: "a1", qtd_registros: 4, qtd_disciplinas: 4, qtd_periodos: 1, soma_frequencia_pct: 225.0, frequencia_media_pct: 56.25, qtd_registros_limitados: 1}

@@ -9,7 +9,7 @@ test-paths:  ["tests"]
 seed-paths:  ["seeds"]
 macro-paths: ["macros"]
 
-clean-targets:         # directories to be removed by `dbt clean`
+clean-targets:         
   - "target"
   - "dbt_packages"
 

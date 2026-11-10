@@ -1,0 +1,23 @@
+version: 2
+
+data_tests:
+  - name: assert_faltas_nao_passam_dos_dias_letivos
+    description: >
+      Regra de negócio: um aluno não pode ter mais faltas do que dias letivos no período.
+      Na origem, 100 − frequencia_bruta = faltas/dias, que não pode passar de 1. O teste
+      tolera o resíduo da extração (zerado na intermediate) e falha acima de 0,1% dos
+      registros, quando o problema deixa de ser ruído e a correção precisa ser revista.
+
+  - name: assert_frequencia_corrigida_concorda_com_avaliacao
+    description: >
+      Regra de negócio: a frequência de uma turma não pode depender do sistema que a
+      registrou. Por turma, a frequência corrigida da tabela de frequência e a frequência
+      oficial da avaliação precisam ter correlação de pelo menos 0,6. Abaixo disso, a
+      origem mudou a fórmula ou a correção do ×100 deixou de valer.
+
+  - name: assert_id_aluno_frequencia_nao_e_o_do_cadastro
+    description: >
+      Premissa de modelagem: o id de aluno da frequência não identifica o mesmo aluno do
+      cadastro, embora o teste de relationships passe. Menos de 1% dos pares (aluno, turma)
+      da frequência podem existir na matrícula. Se o teste falhar, a origem corrigiu o
+      mapeamento e o join por aluno pode ser reavaliado.
